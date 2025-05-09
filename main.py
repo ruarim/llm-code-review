@@ -61,7 +61,6 @@ from utils import view_markdown
     is_flag=True,
     help="Show model token usage"
 )
-# add option to open in markdown viewer - can we ship a lightweight on with the app?
 def review(
     base: str, staged: bool, model: str, plain: bool, md_path: Optional[Path], max_questions: int, list_models: bool, detail_level: str, usage: bool
 ):
