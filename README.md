@@ -79,15 +79,16 @@ uv run -- python -m PyInstaller llm-reviewer.spec
 
 ## Typical flags
 
-| Flag                      | Purpose                               | Default      |
-| ------------------------- | ------------------------------------- | ------------ |
-| `-b, --base`              | Choose the base commit for the diff   | `HEAD~1`     |
-| `-s, --staged`            | Review only staged changes            | *false*      |
-| `-m, --model`             | Model ID to use (see `--list-models`) | repo default |
-| `-d, --detail`            | `low`, `medium`, `high` verbosity     | `medium`     |
-| `-md, --markdown`         | Write review to a file/dir            | *off*        |
-| `-max-q, --max-questions` | Max follow‑up Q\&A turns              | `10`         |
-| `-u, --usage`             | Show token usage per response         | *false*      |
+| Flag                      | Purpose                                       | Default      |
+| ------------------------- | --------------------------------------------- | ------------ |
+| `-b, --base`              | Choose the base commit for the diff           | `HEAD~1`     |
+| `-s, --staged`            | Review only staged changes                    | *false*      |
+| `-m, --model`             | Model ID to use (see `--list-models`)         | repo default |
+| `-d, --detail`            | `low`, `medium`, `high` verbosity             | `medium`     |
+| `-md, --markdown`         | Write review to a file/dir                    | *off*        |
+| `-max-q, --max-questions` | Max follow‑up Q\&A turns                      | `10`         |
+| `-u, --usage`             | Show token usage per response                 | *false*      |
+| `-c, --context`           | Provide additional text or path (.md or .txt) | ""           |
 
 ## License
 
