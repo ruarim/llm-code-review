@@ -63,6 +63,16 @@ For every flag and its default value run:
 python review.py --help
 ```
 
+## Build CLI 
+```bash
+uv run -- python -m PyInstaller llm-reviewer.spec
+```
+
+## Test CLI
+```bash
+./dist/llm-reviewer --list-models 
+```
+
 ## Typical flags
 
 | Flag                      | Purpose                               | Default      |
