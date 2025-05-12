@@ -68,7 +68,7 @@ def handle_context(context: Optional[str]) -> str:
     p = Path(context)
     if p.is_file() and p.suffix in {'.md', '.txt'}:
         try:
-            return p.read_text(encoding='utf-8')
+            return p.read_text()
         except Exception as e:
             click.echo(f"Warning: could not read context file {p}: {e}", err=True)
             return ""

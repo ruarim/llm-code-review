@@ -13,5 +13,5 @@ TRANSCRIPT_HEADERS = {
     "review": "## Review",
     "diff": "## Diff reviewed",
     "usage": "## Usage",
-    "context": "## ADDITIONAL CONTEXT",
+    "context": "## Additional context",
 }
