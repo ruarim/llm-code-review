@@ -44,10 +44,13 @@ def review(
         f"{review_text}\n",
         "\n".join(q_and_a(convo, max_questions, plain)),
         f"{TRANSCRIPT_HEADERS['diff']}\n",
-        f"```diff\n{diff}\n```\n",
-        f"{TRANSCRIPT_HEADERS['context']}\n",
-        additional_context,
+        f"```diff\n{diff}\n```\n"
     ])
+    if additional_context != "":
+        transcript.extend([
+            f"{TRANSCRIPT_HEADERS['context']}\n",
+            additional_context
+        ])
 
     if md_path is not None:
         file_path = write_to_md(md_path, transcript, plain)
