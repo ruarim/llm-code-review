@@ -65,6 +65,10 @@ python review.py --help
 
 ## Build CLI 
 ```bash
+pip install llm-plugin-<provider> # openai models are installed by default.
+```
+
+```bash
 uv run -- python -m PyInstaller llm-reviewer.spec
 ```
 

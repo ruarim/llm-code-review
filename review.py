@@ -2,14 +2,140 @@ import click
 import llm
 import datetime as dt
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 from utils import get_diff
 from utils import mark
 from utils import get_llm_models
 from consts import DEFAULT_MODEL
 from consts import DEFAULT_MAX_QUESTIONS
+from consts import TRANSCRIPT_HEADERS
 from consts import Detail
 from utils import view_markdown
+
+def review(
+    base: str, staged: bool, model: str, plain: bool, md_path: Optional[Path], max_questions: int, detail_level: str, usage: bool, context: str
+):                                                                                               
+    diff = get_diff(base, staged)
+    if not diff.strip():
+        click.echo("No changes found – nothing to review.")
+        return
+    
+    model_obj = llm.get_model(model) if model else llm.get_model(DEFAULT_MODEL)
+    convo = model_obj.conversation()
+    convo.prompt(system='Output markdown')
+    transcript: list[str] = [TRANSCRIPT_HEADERS['document']]
+    additional_context=  handle_context(context)
+    intro = "\n".join([
+        "You are a helpful senior software engineer.",
+        "Review the following git diff and give actionable feedback, highlighting bugs, code smells, security issues and best‑practice violations.",
+        "For each review comment provide;",
+        "- An **Issue** with an explanation.",
+        "- An **Action** with code suggestions.",
+        f"Please use a {detail_level.lower()} level of detail.",
+        "Try not to nitpick",
+        additional_context,
+        "\n",
+        f"Diff:\n{diff}",
+    ])
+        
+    review_text = run_review(intro, convo, plain)
+    transcript.extend([
+        TRANSCRIPT_HEADERS['review'],
+        f"{review_text}\n",
+        "\n".join(q_and_a(convo, max_questions, plain)),
+        f"{TRANSCRIPT_HEADERS['diff']}\n",
+        f"```diff\n{diff}\n```\n",
+        f"{TRANSCRIPT_HEADERS['context']}\n",
+        additional_context,
+    ])
+
+    if md_path is not None:
+        file_path = write_to_md(md_path, transcript, plain)
+        view_markdown(file_path)
+    
+    if usage:
+        transcript.extend([
+            TRANSCRIPT_HEADERS['usage'],
+            calc_usage(convo.responses)
+        ])        
+
+def handle_context(context: Optional[str]) -> str:
+    if not context:
+        return ""
+    p = Path(context)
+    if p.is_file() and p.suffix in {'.md', '.txt'}:
+        try:
+            return p.read_text(encoding='utf-8')
+        except Exception as e:
+            click.echo(f"Warning: could not read context file {p}: {e}", err=True)
+            return ""
+    return context
+    
+def run_review(intro: str, convo: llm.Conversation, plain: bool) -> str:
+    click.echo(f"{mark('🧠','[RUN]', plain)}  Running AI review …")
+    full_answer = []
+    for chunk in convo.prompt(intro):
+        click.echo(chunk, nl=False)
+        full_answer.append(chunk)
+    click.echo()
+    return "".join(full_answer)
+
+def calc_usage(responses: List[llm.models._BaseResponse]):
+    usage = [res.token_usage() for res in responses]
+    # calc cost for tokens
+    details = [res.token_details for res in responses]
+    click.echo(details)
+    click.echo('\nTOKEN USAGE\n')
+    click.echo(usage)
+    return str(usage)
+    
+def q_and_a(convo: llm.Conversation, max_questions: int, plain=False):
+    q_and_a_transcript = []
+    max_questions = 1 if max_questions < 0 else max_questions
+    
+    for i in range(max_questions):
+        question = click.prompt(
+            f"\n{mark('❓','?', plain)}  Follow‑up (Enter to quit)", default="", show_default=False
+        ).strip()
+        
+        if not question:
+            break
+        
+        answer = convo.prompt(question).text()
+        click.echo("\n--- Response ---\n")
+        click.echo(answer)
+
+        q_and_a_transcript.extend([
+            f"### Q: {question}\n", answer + "\n"
+        ])
+        
+        if(i == max_questions - 1):
+            click.echo(f'Exiting: Hit max number of questions: {i}')
+            
+    return q_and_a_transcript
+
+def write_to_md(md_path: Path, transcript: list[str], plain: bool):
+    md_path = Path(md_path)
+    ts_name = f"code-review-{dt.datetime.now():%Y%m%d-%H%M%S}.md".replace(':', '-')
+
+    is_directory_target = (md_path.suffix == "")
+    
+    if is_directory_target:
+        md_path.mkdir(parents=True, exist_ok=True)
+        file_path = md_path / ts_name
+    else:
+        md_path.parent.mkdir(parents=True, exist_ok=True)
+        file_path = md_path
+    
+    try:
+        file_path.write_text("\n".join(transcript), encoding="utf-8")
+    except (OSError, IOError) as e:
+        click.echo(f"Error writing to the file: {e}")
+        raise e
+    
+    click.echo(f"{mark('💾', '[SAVED]', plain)}  Saved transcript to {file_path}")
+    
+    return file_path
 
 @click.command()
 @click.option(
@@ -61,104 +187,27 @@ from utils import view_markdown
     is_flag=True,
     help="Show model token usage"
 )
-def review(
-    base: str, staged: bool, model: str, plain: bool, md_path: Optional[Path], max_questions: int, list_models: bool, detail_level: str, usage: bool
+@click.option(
+    "-c", "--context", 
+    default='',
+    help="Additional text context for the model. Provide text in cli or point to a file (.txt or .md)."
+)
+def cli(
+    base: str, staged: bool, model: str, plain: bool, md_path: Optional[Path], max_questions: int, list_models: bool, detail_level: str, usage: bool, context: str
 ):
+    available_models = get_llm_models()
     if list_models:
-        model_names = "\n".join(get_llm_models())
+        model_names = "\n".join(available_models)
         return click.echo(f'Models:\n{model_names}')
         
-    if model and model not in get_llm_models():                                                                                                                                                                      
-        raise click.BadParameter(f"Invalid model name: {model}. Available models are: {', '.join(get_llm_models())}")                                                                                                
-                                                                                                                                                                                                                      
-    if md_path and not md_path.exists():                                                                                                                                                                             
-        raise click.BadParameter(f"The specified markdown path {md_path} does not exist.")
-    
-    diff = get_diff(base, staged)
-    if not diff.strip():
-        click.echo("No changes found – nothing to review.")
-        return
-
-    model_obj = llm.get_model(model) if model else llm.get_model(DEFAULT_MODEL)
-    convo = model_obj.conversation()
-
-    transcript: list[str] = [
-        "# AI Code Review\n",
-    ]
-
-    intro = "\n".join([
-        "You are a helpful senior software engineer.",
-        "Review the following git diff and give actionable feedback, highlighting bugs, code smells, security issues and best‑practice violations.",
-        "For each review comment provide;",
-        "- An **Issue** with an explanation.",
-        "- An **Action** with code suggestions.",
-        f"Please use a {detail_level.lower()} level of detail.",
-        "Output the response in markdown"
-        "\n",
-        f"Diff:\n{diff}"
-    ])
-
-    click.echo(f"{mark('🧠','[RUN]', plain)}  Running AI review …")
-    # it would make sense to stream this response - or have a loader
-    first_reply = convo.prompt(intro).text()
-    click.echo("\n--- AI Code Review ---\n")
-    click.echo(first_reply)
-
-    transcript += ["## Review\n", first_reply + "\n"]
-    transcript += q_and_a(convo, max_questions, plain)
-    transcript += [ "## Diff reviewed\n"]
-    transcript += ["```diff\n" + diff + "\n```\n"]
-
-    if md_path is not None:
-        file_path = write_to_md(md_path, transcript, plain)
-        view_markdown(file_path)
-    
-    if usage:
-        click.echo('\nTOKEN USAGE\n')
-        click.echo([res.token_usage() for res in convo.responses])
-
-def q_and_a(convo: llm.Conversation, max_questions: int, plain=False):
-    q_and_a_transcript = []
-    max_questions = 1 if max_questions < 0 else max_questions
-    
-    for i in range(max_questions):
-        question = input(f"\n{mark('❓','?', plain)}  Follow‑up (Enter to quit): ").strip()
-        if not question:
-            break
+    if model and model not in available_models:                                                                                                                                                                      
+        raise click.BadParameter(
+            f"Invalid model name: {model}. Available models are: {', '.join(available_models)}"
+        ) 
         
-        answer = convo.prompt(question).text()
-        click.echo("\n--- Response ---\n")
-        click.echo(answer)
-
-        q_and_a_transcript += [f"### Q: {question}\n", answer + "\n"]
-        
-        if(i == max_questions - 1):
-            click.echo(f'Exiting: Hit max number of questions: {i}')
-            
-    return q_and_a_transcript
-
-def write_to_md(md_path: Path, transcript: list[str], plain: bool):
-    md_path = Path(md_path)
-    ts_name = f"code-review-{dt.datetime.now():%Y%m%d-%H%M%S}.md".replace(':', '-')
-
-    is_directory_target = (md_path.suffix == "")
-    
-    if is_directory_target:
-        md_path.mkdir(parents=True, exist_ok=True)
-        file_path = md_path / ts_name
-    else:
-        md_path.parent.mkdir(parents=True, exist_ok=True)
-        file_path = md_path
-    
-    try:
-        file_path.write_text("\n".join(transcript), encoding="utf-8")
-    except (OSError, IOError) as e:
-        click.echo(f"Error writing to the file: {e}")
-        raise
-    
-    click.echo(f"{mark('💾', '[SAVED]', plain)}  Saved transcript to {file_path}")
-    
-    return file_path
+    review(
+        base, staged, model, plain, md_path, max_questions, detail_level, usage, context
+    )
 
 if __name__ == "__main__":
-    review()
+    cli()

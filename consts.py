@@ -7,3 +7,11 @@ class Detail(str, Enum):
 
 DEFAULT_MODEL = 'gpt-4o-mini'
 DEFAULT_MAX_QUESTIONS = 10
+
+TRANSCRIPT_HEADERS = {
+    "document": "# AI Code Review",
+    "review": "## Review",
+    "diff": "## Diff reviewed",
+    "usage": "## Usage",
+    "context": "## ADDITIONAL CONTEXT",
+}
