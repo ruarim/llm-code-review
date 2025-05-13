@@ -52,16 +52,17 @@ python review.py --help
 ```
 
 ## Build CLI 
-To include other models use [llm plugins](https://llm.datasette.io/en/stable/plugins/installing-plugins.html)
 ```bash
 uv run -- python -m PyInstaller llm-reviewer.spec
 ```
+To include other models use [llm plugins](https://llm.datasette.io/en/stable/plugins/installing-plugins.html)
+
 ## Test CLI
 ```bash
 ./dist/llm-reviewer --list-models 
 ```
 
-## Move it your path (Mac)
+## Move to your path (Mac)
 ```bash
 sudo mv ./dist/llm-reviewer /usr/local/bin/llm-reviewer
 ```
