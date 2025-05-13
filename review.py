@@ -12,6 +12,7 @@ from consts import TRANSCRIPT_HEADERS
 from consts import Detail
 from utils import view_markdown
 from utils import try_except
+from utils import chunked_llm_response
 
 def review(
     base: str, staged: bool, model: str, plain: bool, md_path: Optional[Path], max_questions: int, detail_level: str, usage: bool, context: str
@@ -68,25 +69,26 @@ def handle_context(context: Optional[str]) -> str:
         return ""
     p = Path(context)
     if p.is_file() and p.suffix in {'.md', '.txt'}:
-        _, err = try_except(p.read_text())
+        _, err = try_except(p.read_text, None)
         if(err):
             click.echo(f"Warning: could not read context file {p}: {err}", err=True)
             return ""
     return context
-    
+        
 def run_review(intro: str, convo: llm.Conversation, plain: bool) -> str:
     click.echo(f"{mark('🧠','[RUN]', plain)}  Running AI review …")
-    full_answer = []
-    for chunk in convo.prompt(intro):
-        click.echo(chunk, nl=False)
-        full_answer.append(chunk)
-    click.echo()
-    return "".join(full_answer)
+    res, err = try_except(convo.prompt, intro)
+    if err:
+        raise err
+    if res:
+        return chunked_llm_response(res)
+    else:
+        return ''
 
 def calc_usage(responses: List[llm.models._BaseResponse]):
     usage = [res.token_usage() for res in responses]
-    # TODO: calc cost for tokens
     details = [res.token_details for res in responses]
+    # TODO: calc cost for tokens
     click.echo(details)
     click.echo('\nTOKEN USAGE\n')
     click.echo(usage)
@@ -98,11 +100,13 @@ def q_and_a(convo: llm.Conversation, max_questions: int, plain=False):
     
     for i in range(max_questions):
         question = click.prompt(
-            f"\n{mark('❓','?', plain)}  Follow‑up (Enter to quit)", default="", show_default=False
+            f"\n{mark('❓','?', plain)}  Follow‑up (Enter to quit)", 
+            default="", 
+            show_default=False
         ).strip()
         if not question: break
         
-        answer = convo.prompt(question).text()
+        answer = chunked_llm_response(convo.prompt(question))
         click.echo("\n--- Response ---\n")
         click.echo(answer)
 
@@ -128,8 +132,13 @@ def write_to_md(md_path: Path, transcript: list[str], plain: bool):
         md_path.parent.mkdir(parents=True, exist_ok=True)
         file_path = md_path
     
-    _, err = try_except(file_path.write_text("\n".join(transcript), encoding="utf-8"))
-    if err: raise err
+    _, err = try_except(
+        file_path.write_text, 
+        "\n".join(transcript), 
+        encoding="utf-8"
+    )
+    if err: 
+        raise err
     
     click.echo(f"{mark('💾', '[SAVED]', plain)}  Saved transcript to {file_path}")
     
