@@ -84,7 +84,7 @@ def run_review(intro: str, convo: llm.Conversation, plain: bool) -> str:
     if res:
         return chunked_llm_response(res)
     else:
-        return ''
+        return 'No review generated'
 
 def calc_usage(responses: List[llm.models._BaseResponse]):
     usage = [res.token_usage() for res in responses]
