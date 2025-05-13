@@ -11,6 +11,7 @@ from consts import DEFAULT_MAX_QUESTIONS
 from consts import TRANSCRIPT_HEADERS
 from consts import Detail
 from utils import view_markdown
+from utils import try_except
 
 def review(
     base: str, staged: bool, model: str, plain: bool, md_path: Optional[Path], max_questions: int, detail_level: str, usage: bool, context: str
@@ -67,10 +68,9 @@ def handle_context(context: Optional[str]) -> str:
         return ""
     p = Path(context)
     if p.is_file() and p.suffix in {'.md', '.txt'}:
-        try:
-            return p.read_text()
-        except Exception as e:
-            click.echo(f"Warning: could not read context file {p}: {e}", err=True)
+        _, err = try_except(p.read_text())
+        if(err):
+            click.echo(f"Warning: could not read context file {p}: {err}", err=True)
             return ""
     return context
     
@@ -85,12 +85,12 @@ def run_review(intro: str, convo: llm.Conversation, plain: bool) -> str:
 
 def calc_usage(responses: List[llm.models._BaseResponse]):
     usage = [res.token_usage() for res in responses]
-    # calc cost for tokens
+    # TODO: calc cost for tokens
     details = [res.token_details for res in responses]
     click.echo(details)
     click.echo('\nTOKEN USAGE\n')
     click.echo(usage)
-    return str(usage)
+    return "\n".join((usage))
     
 def q_and_a(convo: llm.Conversation, max_questions: int, plain=False):
     q_and_a_transcript = []
@@ -100,9 +100,7 @@ def q_and_a(convo: llm.Conversation, max_questions: int, plain=False):
         question = click.prompt(
             f"\n{mark('❓','?', plain)}  Follow‑up (Enter to quit)", default="", show_default=False
         ).strip()
-        
-        if not question:
-            break
+        if not question: break
         
         answer = convo.prompt(question).text()
         click.echo("\n--- Response ---\n")
@@ -113,7 +111,7 @@ def q_and_a(convo: llm.Conversation, max_questions: int, plain=False):
         ])
         
         if(i == max_questions - 1):
-            click.echo(f'Exiting: Hit max number of questions: {i}')
+            click.echo(f'Exiting: Hit max number of questions: {max_questions}')
             
     return q_and_a_transcript
 
@@ -130,11 +128,8 @@ def write_to_md(md_path: Path, transcript: list[str], plain: bool):
         md_path.parent.mkdir(parents=True, exist_ok=True)
         file_path = md_path
     
-    try:
-        file_path.write_text("\n".join(transcript), encoding="utf-8")
-    except (OSError, IOError) as e:
-        click.echo(f"Error writing to the file: {e}")
-        raise e
+    _, err = try_except(file_path.write_text("\n".join(transcript), encoding="utf-8"))
+    if err: raise err
     
     click.echo(f"{mark('💾', '[SAVED]', plain)}  Saved transcript to {file_path}")
     

@@ -4,6 +4,7 @@ from llm import get_models
 from pathlib import Path
 from rich.console import Console
 from rich.markdown import Markdown
+import logging
 
 def get_diff(base: str, staged: bool) -> str:
     cmd = ["git", "diff", "--cached"] if staged else ["git", "diff", base]
@@ -22,3 +23,17 @@ def get_llm_models():
 def view_markdown(path: Path):
     md_text = path.read_text(encoding="utf-8")
     Console().print(Markdown(md_text))
+    
+def try_except(func):                                                                                                                                                                                                                                          
+    result = None                                                                                                                                                                                                                                              
+    error = None                                                                                                                                                                                                                                               
+    try:                                                                                                                                                                                                                                                       
+        result = func()                                                                                                                                                                                                                                        
+    except (ValueError, TypeError) as e:  # Catching specific exceptions                                                                                                                                                                                       
+        error = e                                                                                                                                                                                                                                              
+        logging.error(f"Error occurred when executing {func.__name__}: {error}")                                                                                                                                                                               
+    except Exception as e:  # Catch-all for unexpected errors                                                                                                                                                                                                  
+        error = e                                                                                                                                                                                                                                              
+        logging.error(f"Unexpected error occurred: {error}")                                                                                                                                                                                                   
+                                                                                                                                                                                                                                                               
+    return result, error 
