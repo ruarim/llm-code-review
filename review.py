@@ -69,10 +69,11 @@ def handle_context(context: Optional[str]) -> str:
         return ""
     p = Path(context)
     if p.is_file() and p.suffix in {'.md', '.txt'}:
-        _, err = try_except(p.read_text, None)
-        if(err):
+        res, err = try_except(p.read_text, None)
+        if err or res is None or res.strip() == "":
             click.echo(f"Warning: could not read context file {p}: {err}", err=True)
             return ""
+        context = res
     return context
         
 def run_review(intro: str, convo: llm.Conversation, plain: bool) -> str:
