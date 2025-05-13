@@ -1,6 +1,6 @@
 # AI Git Code Reviewer
 
-A lightweight CLI that uses your configured large‑language model to review Git diffs and suggest concrete fixes.
+A lightweight CLI that uses large‑language models to review Git diffs and suggest concrete fixes.
 
 ## Requirements
 
@@ -9,20 +9,8 @@ A lightweight CLI that uses your configured large‑language model to review Git
 * [llm](https://github.com/simonw/llm) with at least one model configured
 
 ## Installation
-
 ```bash
-# 1️⃣ Create & activate a virtual env (recommended)
-uv venv                 # creates .venv with CPython in the cwd
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
-
-# 2️⃣ Install the dependencies
-uv pip install -r requirements.txt
-```
-
-Need deterministic installs? Use the lock‑aware variant:
-
-```bash
-uv pip sync requirements.txt
+uv sync 
 ```
 
 ## Quick start
@@ -65,7 +53,7 @@ python review.py --help
 
 ## Build CLI 
 ```bash
-pip install llm-plugin-<provider> # openai models are installed by default.
+uv add llm-plugin-<provider> # openai models are installed by default.
 ```
 
 ```bash
