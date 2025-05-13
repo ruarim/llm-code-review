@@ -61,6 +61,11 @@ uv run -- python -m PyInstaller llm-reviewer.spec
 ./dist/llm-reviewer --list-models 
 ```
 
+## Move it your path (Mac)
+```bash
+sudo mv ./dist/llm-reviewer /usr/local/bin/llm-reviewer
+```
+
 ## Typical flags
 
 | Flag                      | Purpose                                       | Default      |
