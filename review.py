@@ -40,14 +40,16 @@ def review(
         f"Diff:\n{diff}",
     ])
         
-    review_text = run_review(intro, convo, plain)
+    review_text = generate_review(intro, convo, plain)
+    q_and_a_transcript = generate_q_and_a(convo, max_questions, plain)
     transcript.extend([
         TRANSCRIPT_HEADERS['review'],
         f"{review_text}\n",
-        "\n".join(q_and_a(convo, max_questions, plain)),
+        "\n".join(q_and_a_transcript),
         f"{TRANSCRIPT_HEADERS['diff']}\n",
         f"```diff\n{diff}\n```\n"
     ])
+    
     if additional_context != "":
         transcript.extend([
             f"{TRANSCRIPT_HEADERS['context']}\n",
@@ -76,7 +78,7 @@ def handle_context(context: Optional[str]) -> str:
         context = res
     return context
         
-def run_review(intro: str, convo: llm.Conversation, plain: bool) -> str:
+def generate_review(intro: str, convo: llm.Conversation, plain: bool) -> str:
     click.echo(f"{mark('🧠','[RUN]', plain)}  Running AI review …")
     res, err = try_except(convo.prompt, intro)
     if err:
@@ -95,7 +97,7 @@ def calc_usage(responses: List[llm.models._BaseResponse]):
     click.echo(usage)
     return "\n".join((usage))
     
-def q_and_a(convo: llm.Conversation, max_questions: int, plain=False):
+def generate_q_and_a(convo: llm.Conversation, max_questions: int, plain=False):
     q_and_a_transcript = []
     max_questions = 1 if max_questions < 0 else max_questions
     
