@@ -77,7 +77,7 @@ sudo mv ./dist/llm-reviewer /usr/local/bin/llm-reviewer
 | `-md, --markdown`         | Write review to a file/dir                    | *off*        |
 | `-max-q, --max-questions` | Max follow‑up Q\&A turns                      | `10`         |
 | `-u, --usage`             | Show token usage per response                 | *false*      |
-| `-c, --context`           | Provide additional text or path (.md or .txt) | ""           |
+| `-c, --context`           | Provide additional text or file (.md or .txt) | ""           |
 
 ## License
 
