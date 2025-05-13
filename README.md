@@ -36,7 +36,7 @@ python review.py --markdown .    # writes ./code-review-<timestamp>.md
 Change the model or detail level:
 
 ```bash
-python review.py --model gpt-4o-mini --detail high
+python review.py --model o4-mini --detail high
 ```
 
 List available models:
@@ -52,10 +52,10 @@ python review.py --help
 ```
 
 ## Build CLI 
+To include other models use [llm plugins](https://llm.datasette.io/en/stable/plugins/installing-plugins.html)
 ```bash
 uv run -- python -m PyInstaller llm-reviewer.spec
 ```
-
 ## Test CLI
 ```bash
 ./dist/llm-reviewer --list-models 
@@ -72,7 +72,7 @@ sudo mv ./dist/llm-reviewer /usr/local/bin/llm-reviewer
 | ------------------------- | --------------------------------------------- | ------------ |
 | `-b, --base`              | Choose the base commit for the diff           | `HEAD~1`     |
 | `-s, --staged`            | Review only staged changes                    | *false*      |
-| `-m, --model`             | Model ID to use (see `--list-models`)         | repo default |
+| `-m, --model`             | Model ID to use (see `--list-models`)         | `gpt-4o-mini`  |
 | `-d, --detail`            | `low`, `medium`, `high` verbosity             | `medium`     |
 | `-md, --markdown`         | Write review to a file/dir                    | *off*        |
 | `-max-q, --max-questions` | Max follow‑up Q\&A turns                      | `10`         |
